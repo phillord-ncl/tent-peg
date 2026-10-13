@@ -1,0 +1,24 @@
+# Initial Thoughts
+
+At the moment, we have @~/src/python/tent-pole which gives me the ability to automatically upload coursework content to a canvas course. We have recently added the ability to include assignments.
+
+However, all of this is at the level of the canvas course. None of it affects individual student data. Really I would also like a system which allows me to add marks for individual students from data that I calculate locally. This is important anyway because most coursework has to be downloaded to my own machine so that I can test it locally. What the format for this data is I will consider next.
+
+I think tent-peg seems like a slightly waggish but otherwise really name for this, following on from the tent-pole scheme.
+
+Of course, the real value of this would be if I could do some or all of the marking automatically, running a script. I started to look at this in my arbiter package @~/src/python/arbiter.
+
+But honestly it has never got very far. I quite like the builder interface that some of the examples fit, but probably we also need a TOML file to configure the forms of the test. Currently, the builder also defines execution order, but I would like arbiter to be able to run all of parts of the assessment that can be done mechanically first ("does this file exist", or "is the report under 500 words"). And then ask me for stuff that can't be done mechaniscally and requires judgement afterward ("is the report cool").
+
+Of course, we now have a toml file in tent-pole taht specifies a rubric and set up in canvas. I would like that toml file to be usable in arbiter in some way. The arbiter toml file could point to the tent-pole toml to drag out marks and so forth, and just say "test it by running this predicate function".
+
+After this, I would be able to download a full set of coursework from canvas, run "arbiter" in each directory, answer questions about the coursework as needed, and then, when finished run `tent-peg push results`, either per student or better recursively call an entire directory of student results. tent-peg will also be able to do some sanity testing of a assignment to tell me what was missing, who hasn't been marked, and maybe get some stats as well, so I could moderate. I have not investigated canvas' download section yet, but the word on the street is that it does not allow you to define the download format (i.e. it always uses student names first_name). We might need a download tool as well which would let us include other metadata, including student ID, into the download
+
+We often mark in teams, so arbiter needs to be well written and should not assume that, for example, the marker is always on linux. Similar tent-peg needs to be same and should not accidentally overwrite someone elses marks. I do not know enough about canvas marker assignment yet; I assume that we can split the markking between ten people and they will just be able to download theirs.
+
+
+In time I may find the split between arbiter to be a PITA and may want to revist. We may want to pull the arbiter and tent-peg together.
+
+I will probably want to redo the directory here so that tent-pole, tent-peg and arbiter live under a "tent-tools" directory just for easier organisation. We can think about taht.
+
+
