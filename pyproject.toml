@@ -1,0 +1,19 @@
+[tool.poetry]
+name = "tent-peg"
+version = "0.1.0"
+description = "Interact with Canvas assignments: download submissions, push marks"
+authors = ["Phillip Lord"]
+
+[tool.poetry.dependencies]
+python = ">=3.12,<4.0"
+tent-pole = { git = "https://github.com/phillord-ncl/tent-pole.git", tag = "v0.7.1" }
+
+[tool.poetry.scripts]
+tent-peg = "tent_peg.cli:main"
+
+[tool.poetry.group.dev.dependencies]
+pytest = "^8.3"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
