@@ -4,6 +4,9 @@ import click
 from tent_pole import config as tp_config
 from tent_pole.course import course_by_exact
 
+from tent_pole.rubric import load_rubric_toml
+
+from .push import PushError, live_criteria, push_grade, push_submission, read_results
 from .markers import course_markers, student_names
 from .download import (
     LAYOUTS,
@@ -116,3 +119,76 @@ def markers(students):
             if students:
                 for sid in sorted(m["students"], key=lambda i: names.get(i, "")):
                     click.echo("        {}".format(names.get(sid, sid)))
+
+
+@main.group()
+def marks():
+    """Work with the marks arbiter recorded."""
+
+
+def _submission_dirs(root):
+    """``root`` itself if it holds a canvas.toml, else its subdirectories that do."""
+    if os.path.exists(os.path.join(root, "canvas.toml")):
+        return [root]
+    return sorted(
+        os.path.join(root, d) for d in os.listdir(root)
+        if os.path.exists(os.path.join(root, d, "canvas.toml")))
+
+
+@marks.command()
+@click.argument("assignment")
+@click.argument("directory", type=click.Path(exists=True, file_okay=False), default=".")
+@click.option("--rubric", "rubric_path", type=click.Path(exists=True, dir_okay=False),
+              help="The .rubric.toml arbiter marked against (default: the one "
+                   "named in the first arb-results.toml).")
+@click.option("--dry-run", is_flag=True, help="Say what would be pushed; write nothing to Canvas.")
+@click.option("--force", is_flag=True,
+              help="Overwrite marks Canvas holds that this tool did not push.")
+def push(assignment, directory, rubric_path, dry_run, force):
+    """Push arbiter's marks for ASSIGNMENT to Canvas.
+
+    With a rubric on the assignment they go in as rubric assessments. With
+    none, the total goes in as the grade (scaled to the assignment's points)
+    and each arb-feedback.txt, if present, as a comment.
+
+    DIRECTORY is one submission, or a directory of them (default: here)."""
+    dirs = _submission_dirs(directory)
+    if not dirs:
+        raise click.ClickException("no submissions (canvas.toml) under {}".format(directory))
+    course = find_course(tp_config.config_canvas())
+    try:
+        assignment = find_assignment(course, assignment)
+        if not getattr(assignment, "rubric", None):
+            criteria = None
+        else:
+            criteria = live_criteria(assignment)
+        if criteria is None:
+            rubric_toml = None
+        elif rubric_path is None:
+            for d in dirs:
+                try:
+                    rubric_path = read_results(d).get("rubric")
+                except PushError:
+                    continue
+                break
+        if criteria is not None:
+            if not rubric_path or not os.path.exists(rubric_path):
+                raise click.ClickException(
+                    "cannot find the .rubric.toml; name it with --rubric")
+            rubric_toml = load_rubric_toml(rubric_path)
+    except (DownloadError, PushError) as e:
+        raise click.ClickException(str(e))
+    failed = 0
+    for d in dirs:
+        name = os.path.basename(os.path.normpath(d))
+        try:
+            if criteria is None:
+                outcome = push_grade(d, assignment, force, dry_run)
+            else:
+                outcome = push_submission(d, assignment, rubric_toml, criteria, force, dry_run)
+            click.echo("{}: {}".format(name, outcome))
+        except PushError as e:
+            failed += 1
+            click.echo("{}: skipped, {}".format(name, e))
+    if failed:
+        raise click.ClickException("{} of {} not pushed".format(failed, len(dirs)))

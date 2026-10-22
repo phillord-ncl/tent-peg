@@ -77,3 +77,23 @@ def test_all_with_section_is_refused(monkeypatch, tmp_path):
     setup(monkeypatch)
     r = CliRunner().invoke(cli.main, ["download", "9", "--all", "--section", "7", "--out", str(tmp_path)])
     assert r.exit_code != 0 and "do not go together" in r.output
+
+
+def test_marks_push_dry_run(monkeypatch, tmp_path):
+    from tests.test_push import RUBRIC, FakeSub, student
+    setup(monkeypatch)
+    d = student(tmp_path)
+    (tmp_path / "ann" / "r.rubric.toml").write_text(
+        '[[criteria]]\nid = "correctness"\ndescription = "Correctness"\n'
+        '[[criteria]]\nid = "style"\ndescription = "Style"\n')
+    sub = FakeSub()
+    a = cli.find_assignment
+    monkeypatch.setattr(cli, "find_assignment", lambda course, ident: NS(
+        rubric=[{"id": "_1", "description": "Correctness"},
+                {"id": "_2", "description": "Style"}],
+        get_submission=lambda uid, include=None: sub))
+    r = CliRunner().invoke(cli.main, [
+        "marks", "push", "9", str(tmp_path), "--dry-run",
+        "--rubric", str(tmp_path / "ann" / "r.rubric.toml")])
+    assert r.exit_code == 0, r.output
+    assert "ann: dry-run" in r.output and sub.edits == []

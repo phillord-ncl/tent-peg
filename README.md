@@ -58,7 +58,27 @@ assignment). Options:
   alone, so you can run `download` again later for late submissions without
   touching marks you have already made.
 
-Everything here only reads from Canvas.
+`marks push ASSIGNMENT [DIR]` writes the marks arbiter recorded back to
+Canvas. `DIR` is one submission, or a directory of them (default: here).
+This is the only command that writes to Canvas. Options:
+
+- `--dry-run`: say what would be pushed, and write nothing.
+- `--force`: overwrite marks Canvas holds that this tool did not push.
+- `--rubric FILE`: the `.rubric.toml` arbiter marked against (default: the
+  one named in `arb-results.toml`).
+
+If the assignment has a rubric, each criterion's score and feedback go in as
+a rubric assessment. Criteria are matched by description, since Canvas
+criterion ids change when a rubric is edited. If it has none, the total in
+`arb-results.toml` goes in as the grade, scaled to the assignment's points,
+and the student's `arb-feedback.txt`, if there is one, as a comment.
+
+A push leaves `canvas-pushed.toml` in the student's directory. A later push
+refuses to replace marks on Canvas that differ from it, so a mark entered by
+another marker is not lost. Comments cannot be edited, so one is posted only
+when its text has changed.
+
+All the other commands only read from Canvas.
 
 ## What download writes
 
@@ -89,6 +109,7 @@ tent-peg gets the work; arbiter marks it:
     tent-peg -c "CSC1034 (26/27)" download "Assignment/Assessment 1" --out marking
     arbiter unpack -r marking
     arbiter --arb CSC1034.arb.toml -r marking
+    tent-peg -c "CSC1034 (26/27)" marks push "Assignment/Assessment 1" marking
 
 ## Development
 
