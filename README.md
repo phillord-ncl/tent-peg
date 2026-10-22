@@ -30,7 +30,14 @@ from Account, Settings, *New Access Token*
 
 The course comes from a `tent-pole.toml` in the current directory (or a
 parent, up to the git root) with `[course] identifier = "..."`, or from
-`-c`, which takes a course id, code or name. `--beta` uses the `[dev]`
+`-c`, which takes a course id, code or name. The same file can name the assignment and where submissions live, so that
+`tent-peg download` and `tent-peg marks push` need no arguments:
+
+    [peg]
+    assignment = "Assignment/Assessment 1"
+    marking = "marking"
+
+Arguments on the command line override these. `--beta` uses the `[dev]`
 test instance and course instead; see tent-pole's `docs/configure.md`.
 
 ## Commands

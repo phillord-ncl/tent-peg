@@ -27,6 +27,19 @@ def find_course(canvas):
     return course
 
 
+def peg_setting(key, given=None):
+    """``given`` if set, else ``[peg] key`` from tent-pole.toml, else None."""
+    return given if given is not None else tp_config.get_maybe(tp_config.CONFIG, "peg/" + key)
+
+
+def need_assignment(given):
+    found = peg_setting("assignment", given)
+    if not found:
+        raise click.UsageError(
+            "no assignment: name it, or set [peg] assignment in tent-pole.toml")
+    return found
+
+
 @click.group()
 @click.option("-c", "--course", "course_id", help="Course id, code or name.")
 @click.option("--beta", is_flag=True, help="Use the [dev] test instance and course.")
@@ -60,9 +73,10 @@ def sections():
 
 
 @main.command()
-@click.argument("assignment")
-@click.option("--out", default=".", type=click.Path(file_okay=False),
-              help="Directory to write one directory per student into.")
+@click.argument("assignment", required=False)
+@click.option("--out", default=None, type=click.Path(file_okay=False),
+              help="Directory to write one directory per student into "
+                   "(default: [peg] marking in tent-pole.toml, else here).")
 @click.option("--section", "sections", type=int, multiple=True,
               help="Students in this section id instead of your own (repeatable).")
 @click.option("--all", "everyone", is_flag=True,
@@ -74,6 +88,8 @@ def download(assignment, out, sections, everyone, layout, force):
     """Download the submissions to ASSIGNMENT (id or name) in the configured
     course, for the students in your sections only (or in --section, or
     everyone with --all)."""
+    assignment = need_assignment(assignment)
+    out = peg_setting("marking", out) or "."
     canvas = tp_config.config_canvas()
     course = find_course(canvas)
     if everyone and sections:
@@ -136,8 +152,8 @@ def _submission_dirs(root):
 
 
 @marks.command()
-@click.argument("assignment")
-@click.argument("directory", type=click.Path(exists=True, file_okay=False), default=".")
+@click.argument("assignment", required=False)
+@click.argument("directory", type=click.Path(exists=True, file_okay=False), required=False)
 @click.option("--rubric", "rubric_path", type=click.Path(exists=True, dir_okay=False),
               help="The .rubric.toml arbiter marked against (default: the one "
                    "named in the first arb-results.toml).")
@@ -151,7 +167,12 @@ def push(assignment, directory, rubric_path, dry_run, force):
     none, the total goes in as the grade (scaled to the assignment's points)
     and each arb-feedback.txt, if present, as a comment.
 
-    DIRECTORY is one submission, or a directory of them (default: here)."""
+    DIRECTORY is one submission, or a directory of them (default: [peg]
+    marking in tent-pole.toml, else here)."""
+    assignment = need_assignment(assignment)
+    directory = peg_setting("marking", directory) or "."
+    if not os.path.isdir(directory):
+        raise click.ClickException("no such directory: {}".format(directory))
     dirs = _submission_dirs(directory)
     if not dirs:
         raise click.ClickException("no submissions (canvas.toml) under {}".format(directory))

@@ -97,3 +97,18 @@ def test_marks_push_dry_run(monkeypatch, tmp_path):
         "--rubric", str(tmp_path / "ann" / "r.rubric.toml")])
     assert r.exit_code == 0, r.output
     assert "ann: dry-run" in r.output and sub.edits == []
+
+
+def test_peg_settings_fill_in_assignment_and_directory(monkeypatch, tmp_path):
+    setup(monkeypatch)
+    monkeypatch.setattr(cli.tp_config, "CONFIG", {"peg": {"assignment": "9", "marking": str(tmp_path)}})
+    r = CliRunner().invoke(cli.main, ["download"])
+    assert r.exit_code == 0, r.output
+    assert [p.name for p in tmp_path.iterdir()] == ["ann@ncl.ac.uk"]
+
+
+def test_no_assignment_is_a_usage_error(monkeypatch):
+    setup(monkeypatch)
+    monkeypatch.setattr(cli.tp_config, "CONFIG", {})
+    r = CliRunner().invoke(cli.main, ["marks", "push"])
+    assert r.exit_code == 2 and "[peg] assignment" in r.output
