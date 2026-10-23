@@ -42,9 +42,19 @@ def student_names(course):
 
 
 def marker_groups(course):
-    """Map each section-restricted marker's login id (else name) to the set
-    of student user ids Canvas gives them. Unrestricted staff are left out."""
-    return {
-        m["login_id"] or m["name"]: m["students"]
-        for m in course_markers(course) if m["students"] is not None
+    """Map each marker's login id (else name) to the set of student user ids
+    in the sections they are enrolled in, restricted or not. A section
+    holding the whole class is ignored, as is a marker with no other
+    section."""
+    members = {
+        s.id: {st["id"] for st in (s.students or [])}
+        for s in course.get_sections(include=["students"])
     }
+    everyone = set().union(*members.values()) if members else set()
+    groups = {}
+    for m in course_markers(course):
+        mine = [members[i] for i in m["sections"]
+                if i in members and members[i] != everyone]
+        if mine:
+            groups[m["login_id"] or m["name"]] = set().union(*mine)
+    return groups
