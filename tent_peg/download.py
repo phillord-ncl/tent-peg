@@ -6,11 +6,16 @@ through the API and a marker's share is picked out here, by section.
 """
 import os
 import re
+import shutil
 
 #: Directory naming: the email is world unique; the login id (NCL username)
 #: is readily de-identifiable but not immediately so, so it is used for
 #: anonymous marking.
 LAYOUTS = {"email": "{email}", "login": "{login_id}"}
+
+
+#: Directory for students no marker has, when downloading by marker.
+UNASSIGNED = "unassigned"
 
 
 class DownloadError(Exception):
@@ -135,6 +140,7 @@ def download_assignment(
     layout=None,
     force=False,
     report=lambda msg: None,
+    groups=None,
 ):
     """Write each submission to ``assignment`` into a directory under ``out``.
 
@@ -142,7 +148,11 @@ def download_assignment(
     assignment is anonymous). ``section_ids`` limits it to students in those sections (None: everyone).
     A student whose directory already holds a canvas.toml is left alone unless
     ``force``, so an interrupted run can be repeated, and a marker's results
-    are not overwritten. Returns the directories written."""
+    are not overwritten. Returns the directories written.
+
+    ``groups`` maps a name to a set of user ids. Each student then goes into
+    ``out/<name>/`` for every group holding them (a copy in each), or into
+    ``out/unassigned/`` when no group does."""
     anonymous = bool(getattr(assignment, "anonymous_grading", False))
     if layout is None:
         layout = "login" if anonymous else "email"
@@ -175,10 +185,21 @@ def download_assignment(
                 )
             )
         seen[name] = sub.user_id
-        directory = os.path.join(out, name)
-        if os.path.exists(os.path.join(directory, "canvas.toml")) and not force:
+        if groups is None:
+            parents = [out]
+        else:
+            parents = [os.path.join(out, safe_name(g)) for g in sorted(groups)
+                       if sub.user_id in groups[g]] or [os.path.join(out, UNASSIGNED)]
+            if len(parents) > 1:
+                report("{}: in {} groups".format(name, len(parents)))
+        targets = [os.path.join(p, name) for p in parents]
+        if not force:
+            targets = [t for t in targets
+                       if not os.path.exists(os.path.join(t, "canvas.toml"))]
+        if not targets:
             report("{}: exists, left alone".format(name))
             continue
+        directory = targets[0]
         os.makedirs(directory, exist_ok=True)
         files = []
         for attachment in getattr(sub, "attachments", None) or []:
@@ -193,6 +214,8 @@ def download_assignment(
         write_canvas_toml(
             directory, sub, fields, files, student_sections.get(sub.user_id, []), anonymous
         )
+        for other in targets[1:]:
+            shutil.copytree(directory, other, dirs_exist_ok=True)
         report("{}: {} file{}".format(name, len(files), "" if len(files) == 1 else "s"))
-        made.append(directory)
+        made.extend(targets)
     return made

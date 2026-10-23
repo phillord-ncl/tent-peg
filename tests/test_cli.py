@@ -112,3 +112,12 @@ def test_no_assignment_is_a_usage_error(monkeypatch):
     monkeypatch.setattr(cli.tp_config, "CONFIG", {})
     r = CliRunner().invoke(cli.main, ["marks", "push"])
     assert r.exit_code == 2 and "[peg] assignment" in r.output
+
+
+def test_by_marker_groups_students_under_their_marker(monkeypatch, tmp_path):
+    setup(monkeypatch)
+    monkeypatch.setattr(cli, "marker_groups", lambda course: {"mk": {10}})
+    r = CliRunner().invoke(cli.main, ["download", "9", "--by-marker", "--out", str(tmp_path)])
+    assert r.exit_code == 0, r.output
+    assert (tmp_path / "mk" / "ann@ncl.ac.uk" / "canvas.toml").exists()
+    assert (tmp_path / "unassigned" / "bob@ncl.ac.uk" / "canvas.toml").exists()

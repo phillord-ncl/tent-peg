@@ -60,6 +60,11 @@ assignment). Options:
   sections you are enrolled in.
 - `--all`: every student, for when you are in no section. It cannot be
   combined with `--section`.
+- `--by-marker`: every student, written as `DIR/<marker login>/<student>/`
+  for each section-restricted marker, using the same sections as `markers`.
+  A student in two markers' sections is copied into both; students no marker
+  has go in `DIR/unassigned/`. Zip each marker's directory to hand it out.
+  Cannot be combined with `--section`.
 - `--layout email|login`: how to name the student directories.
 - `--force`: rewrite students already downloaded. Without it they are left
   alone, so you can run `download` again later for late submissions without

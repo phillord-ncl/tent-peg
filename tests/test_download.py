@@ -128,3 +128,21 @@ def test_unknown_layout(tmp_path):
     course, a = world()
     with pytest.raises(DownloadError, match="unknown layout"):
         download_assignment(course, a, str(tmp_path), layout="initials")
+
+
+def test_groups_copy_shared_students_and_collect_the_rest(tmp_path):
+    course, a = world()
+    msgs = []
+    download_assignment(course, a, str(tmp_path), report=msgs.append,
+                        groups={"m1": {10, 20}, "m2": {20}})
+    assert sorted(str(p.relative_to(tmp_path)) for p in tmp_path.glob("*/*")) == [
+        "m1/ann@ncl.ac.uk", "m1/bob@ncl.ac.uk", "m2/bob@ncl.ac.uk"]
+    assert (tmp_path / "m2" / "bob@ncl.ac.uk" / "r.md").exists()
+    assert "bob@ncl.ac.uk: in 2 groups" in msgs
+
+
+def test_group_less_students_are_unassigned(tmp_path):
+    course, a = world()
+    download_assignment(course, a, str(tmp_path), groups={"m1": {10}})
+    assert (tmp_path / "unassigned" / "bob@ncl.ac.uk" / "canvas.toml").exists()
+    assert not (tmp_path / "m1" / "bob@ncl.ac.uk").exists()

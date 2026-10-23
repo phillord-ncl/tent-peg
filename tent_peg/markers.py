@@ -39,3 +39,12 @@ def course_markers(course):
 def student_names(course):
     return {u.id: u.sortable_name for u in
             course.get_users(enrollment_type=["student"])}
+
+
+def marker_groups(course):
+    """Map each section-restricted marker's login id (else name) to the set
+    of student user ids Canvas gives them. Unrestricted staff are left out."""
+    return {
+        m["login_id"] or m["name"]: m["students"]
+        for m in course_markers(course) if m["students"] is not None
+    }

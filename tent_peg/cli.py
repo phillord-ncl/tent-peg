@@ -7,7 +7,7 @@ from tent_pole.course import course_by_exact
 from tent_pole.rubric import load_rubric_toml
 
 from .push import PushError, live_criteria, push_grade, push_submission, read_results
-from .markers import course_markers, student_names
+from .markers import course_markers, marker_groups, student_names
 from .download import (
     LAYOUTS,
     DownloadError,
@@ -81,20 +81,25 @@ def sections():
               help="Students in this section id instead of your own (repeatable).")
 @click.option("--all", "everyone", is_flag=True,
               help="Every student, for when you are in no section.")
+@click.option("--by-marker", is_flag=True,
+              help="Every student, in a directory per marker (their Canvas sections) "
+                   "for you to zip up and hand out; the rest go in unassigned/.")
 @click.option("--layout", type=click.Choice(sorted(LAYOUTS)), default=None,
               help="Name directories by email or by NCL login id (default: email, login for anonymous assignments).")
 @click.option("--force", is_flag=True, help="Rewrite students already downloaded.")
-def download(assignment, out, sections, everyone, layout, force):
+def download(assignment, out, sections, everyone, by_marker, layout, force):
     """Download the submissions to ASSIGNMENT (id or name) in the configured
     course, for the students in your sections only (or in --section, or
-    everyone with --all)."""
+    everyone with --all). With --by-marker, everyone, grouped by marker."""
     assignment = need_assignment(assignment)
     out = peg_setting("marking", out) or "."
     canvas = tp_config.config_canvas()
     course = find_course(canvas)
-    if everyone and sections:
+    if (everyone or by_marker) and sections:
         raise click.UsageError("--all and --section do not go together")
-    if sections:
+    if by_marker:
+        section_ids = None
+    elif sections:
         section_ids = set(sections)
     elif everyone:
         section_ids = None
@@ -106,7 +111,8 @@ def download(assignment, out, sections, everyone, layout, force):
     try:
         assignment = find_assignment(course, assignment)
         made = download_assignment(
-            course, assignment, out, section_ids, layout, force, click.echo
+            course, assignment, out, section_ids, layout, force, click.echo,
+            groups=marker_groups(course) if by_marker else None,
         )
     except DownloadError as e:
         raise click.ClickException(str(e))
