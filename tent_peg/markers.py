@@ -42,7 +42,7 @@ def student_names(course):
 
 
 def marker_groups(course, skip=()):
-    """Map each marker's login id (else name) to the set of student user ids
+    """Map each marker's name (as Canvas sorts it) to the set of student user ids
     in the sections they are enrolled in, restricted or not. ``skip`` names
     sections (by id or exact name, ignoring case) to leave out, such as the
     one holding the whole class; a marker with no other section is dropped."""
@@ -60,5 +60,5 @@ def marker_groups(course, skip=()):
     for m in course_markers(course):
         mine = [members[i] for i in m["sections"] if i in members]
         if mine:
-            groups[m["login_id"] or m["name"]] = set().union(*mine)
+            groups.setdefault(m["name"], set()).update(*mine)
     return groups

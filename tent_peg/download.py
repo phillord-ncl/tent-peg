@@ -188,7 +188,7 @@ def download_assignment(
         if groups is None:
             parents = [out]
         else:
-            parents = [os.path.join(out, safe_name(g)) for g in sorted(groups)
+            parents = [os.path.join(out, safe_name(g.replace(",", ""))) for g in sorted(groups)
                        if sub.user_id in groups[g]] or [os.path.join(out, UNASSIGNED)]
             if len(parents) > 1:
                 report("{}: in {} groups".format(name, len(parents)))

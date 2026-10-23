@@ -42,12 +42,12 @@ class Classroom(Course):
 
 
 def test_marker_groups_skip_named_sections():
-    assert marker_groups(Classroom(), skip=["all"]) == {"l1": {10}, "l2": {11, 20}}
-    assert marker_groups(Classroom(), skip=["all", "3"]) == {"l1": {10}}
+    assert marker_groups(Classroom(), skip=["all"]) == {"Mark, A": {10}, "Mark, B": {11, 20}}
+    assert marker_groups(Classroom(), skip=["all", "3"]) == {"Mark, A": {10}}
 
 
 def test_marker_groups_without_skip_keep_every_section():
-    assert marker_groups(Classroom())["l3"] == {10, 11, 20}
+    assert marker_groups(Classroom())["Boss, B"] == {10, 11, 20}
 
 
 def test_marker_groups_unknown_skip_is_an_error():

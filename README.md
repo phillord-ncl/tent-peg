@@ -60,7 +60,7 @@ assignment). Options:
   sections you are enrolled in.
 - `--all`: every student, for when you are in no section. It cannot be
   combined with `--section`.
-- `--by-marker`: every student, written as `DIR/<marker login>/<student>/`
+- `--by-marker`: every student, written as `DIR/<Surname_Forenames>/<student>/`
   for each marker, using the sections they are enrolled in, restricted or not.
   A student in two markers' sections is copied into both; students no marker
   has go in `DIR/unassigned/`. Zip each marker's directory to hand it out.
