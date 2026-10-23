@@ -150,5 +150,5 @@ def test_group_less_students_are_unassigned(tmp_path):
 
 def test_group_directory_is_the_name_with_underscores(tmp_path):
     course, a = world()
-    download_assignment(course, a, str(tmp_path), groups={"Marker, Zed": {10}})
+    download_assignment(course, a, str(tmp_path), groups={"Zed Marker": {10}})
     assert (tmp_path / "Zed_Marker" / "ann@ncl.ac.uk" / "canvas.toml").exists()

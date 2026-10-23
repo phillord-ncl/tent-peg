@@ -5,7 +5,7 @@ from tent_peg.markers import course_markers, marker_groups
 
 
 def enrol(uid, name, type, section, restricted):
-    return NS(user_id=uid, user={"sortable_name": name, "login_id": "l%d" % uid},
+    return NS(user_id=uid, user={"sortable_name": name, "name": " ".join(reversed(name.split(", "))), "login_id": "l%d" % uid},
               type=type, course_section_id=section,
               limit_privileges_to_course_section=restricted)
 
@@ -42,12 +42,12 @@ class Classroom(Course):
 
 
 def test_marker_groups_skip_named_sections():
-    assert marker_groups(Classroom(), skip=["all"]) == {"Mark, A": {10}, "Mark, B": {11, 20}}
-    assert marker_groups(Classroom(), skip=["all", "3"]) == {"Mark, A": {10}}
+    assert marker_groups(Classroom(), skip=["all"]) == {"A Mark": {10}, "B Mark": {11, 20}}
+    assert marker_groups(Classroom(), skip=["all", "3"]) == {"A Mark": {10}}
 
 
 def test_marker_groups_without_skip_keep_every_section():
-    assert marker_groups(Classroom())["Boss, B"] == {10, 11, 20}
+    assert marker_groups(Classroom())["B Boss"] == {10, 11, 20}
 
 
 def test_marker_groups_unknown_skip_is_an_error():

@@ -17,6 +17,7 @@ def course_markers(course):
         m = people.setdefault(e.user_id, {
             "user_id": e.user_id,
             "name": user.get("sortable_name") or user.get("name", "?"),
+            "full_name": user.get("name") or user.get("sortable_name", "?"),
             "login_id": user.get("login_id", ""),
             "roles": set(),
             "restricted": False,
@@ -42,7 +43,7 @@ def student_names(course):
 
 
 def marker_groups(course, skip=()):
-    """Map each marker's name (as Canvas sorts it) to the set of student user ids
+    """Map each marker's full name, forename first, to the set of student user ids
     in the sections they are enrolled in, restricted or not. ``skip`` names
     sections (by id or exact name, ignoring case) to leave out, such as the
     one holding the whole class; a marker with no other section is dropped."""
@@ -60,5 +61,5 @@ def marker_groups(course, skip=()):
     for m in course_markers(course):
         mine = [members[i] for i in m["sections"] if i in members]
         if mine:
-            groups.setdefault(m["name"], set()).update(*mine)
+            groups.setdefault(m["full_name"], set()).update(*mine)
     return groups
