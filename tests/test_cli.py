@@ -116,7 +116,7 @@ def test_no_assignment_is_a_usage_error(monkeypatch):
 
 def test_by_marker_groups_students_under_their_marker(monkeypatch, tmp_path):
     setup(monkeypatch)
-    monkeypatch.setattr(cli, "marker_groups", lambda course: {"mk": {10}})
+    monkeypatch.setattr(cli, "marker_groups", lambda course, skip=(): {"mk": {10}})
     r = CliRunner().invoke(cli.main, ["download", "9", "--by-marker", "--out", str(tmp_path)])
     assert r.exit_code == 0, r.output
     assert (tmp_path / "mk" / "ann@ncl.ac.uk" / "canvas.toml").exists()

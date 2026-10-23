@@ -41,20 +41,24 @@ def student_names(course):
             course.get_users(enrollment_type=["student"])}
 
 
-def marker_groups(course):
+def marker_groups(course, skip=()):
     """Map each marker's login id (else name) to the set of student user ids
-    in the sections they are enrolled in, restricted or not. A section
-    holding the whole class is ignored, as is a marker with no other
-    section."""
+    in the sections they are enrolled in, restricted or not. ``skip`` names
+    sections (by id or exact name, ignoring case) to leave out, such as the
+    one holding the whole class; a marker with no other section is dropped."""
+    skip = {str(x).strip().lower() for x in skip}
+    sections = {s.id: s for s in course.get_sections(include=["students"])}
+    unknown = skip - {str(i) for i in sections} - {s.name.lower() for s in sections.values()}
+    if unknown:
+        raise ValueError("no such section: {}".format(", ".join(sorted(unknown))))
     members = {
-        s.id: {st["id"] for st in (s.students or [])}
-        for s in course.get_sections(include=["students"])
+        i: {st["id"] for st in (s.students or [])}
+        for i, s in sections.items()
+        if str(i) not in skip and s.name.lower() not in skip
     }
-    everyone = set().union(*members.values()) if members else set()
     groups = {}
     for m in course_markers(course):
-        mine = [members[i] for i in m["sections"]
-                if i in members and members[i] != everyone]
+        mine = [members[i] for i in m["sections"] if i in members]
         if mine:
             groups[m["login_id"] or m["name"]] = set().union(*mine)
     return groups

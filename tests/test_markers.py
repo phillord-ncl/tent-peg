@@ -1,3 +1,4 @@
+import pytest
 from types import SimpleNamespace as NS
 
 from tent_peg.markers import course_markers, marker_groups
@@ -40,5 +41,15 @@ class Classroom(Course):
                 enrol(3, "Boss, B", "TeacherEnrollment", 1, False)]
 
 
-def test_marker_groups_use_unrestricted_sections_but_not_the_whole_class():
-    assert marker_groups(Classroom()) == {"l1": {10}, "l2": {11, 20}}
+def test_marker_groups_skip_named_sections():
+    assert marker_groups(Classroom(), skip=["all"]) == {"l1": {10}, "l2": {11, 20}}
+    assert marker_groups(Classroom(), skip=["all", "3"]) == {"l1": {10}}
+
+
+def test_marker_groups_without_skip_keep_every_section():
+    assert marker_groups(Classroom())["l3"] == {10, 11, 20}
+
+
+def test_marker_groups_unknown_skip_is_an_error():
+    with pytest.raises(ValueError, match="no such section: nope"):
+        marker_groups(Classroom(), skip=["nope"])

@@ -84,10 +84,13 @@ def sections():
 @click.option("--by-marker", is_flag=True,
               help="Every student, in a directory per marker (their Canvas sections) "
                    "for you to zip up and hand out; the rest go in unassigned/.")
+@click.option("--skip-section", "skip_sections", multiple=True,
+              help="With --by-marker, ignore this section (id or name; repeatable), "
+                   "such as the one holding the whole class.")
 @click.option("--layout", type=click.Choice(sorted(LAYOUTS)), default=None,
               help="Name directories by email or by NCL login id (default: email, login for anonymous assignments).")
 @click.option("--force", is_flag=True, help="Rewrite students already downloaded.")
-def download(assignment, out, sections, everyone, by_marker, layout, force):
+def download(assignment, out, sections, everyone, by_marker, skip_sections, layout, force):
     """Download the submissions to ASSIGNMENT (id or name) in the configured
     course, for the students in your sections only (or in --section, or
     everyone with --all). With --by-marker, everyone, grouped by marker."""
@@ -97,6 +100,8 @@ def download(assignment, out, sections, everyone, by_marker, layout, force):
     course = find_course(canvas)
     if (everyone or by_marker) and sections:
         raise click.UsageError("--all and --section do not go together")
+    if skip_sections and not by_marker:
+        raise click.UsageError("--skip-section needs --by-marker")
     if by_marker:
         section_ids = None
     elif sections:
@@ -110,11 +115,12 @@ def download(assignment, out, sections, everyone, by_marker, layout, force):
                 "you are not enrolled in any section; name one with --section, or use --all")
     try:
         assignment = find_assignment(course, assignment)
+        groups = marker_groups(course, skip_sections) if by_marker else None
         made = download_assignment(
             course, assignment, out, section_ids, layout, force, click.echo,
-            groups=marker_groups(course) if by_marker else None,
+            groups=groups,
         )
-    except DownloadError as e:
+    except (DownloadError, ValueError) as e:
         raise click.ClickException(str(e))
     click.echo("{} submissions written to {}".format(len(made), out))
 
