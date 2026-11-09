@@ -7,10 +7,11 @@ from tent_pole.course import course_by_exact
 from tent_pole.rubric import load_rubric_toml
 
 from .push import PushError, live_criteria, push_grade, push_submission, read_results
-from .status import format_tally, label, tally
+from .status import format_tally, format_total, label, tally
 from .markers import course_markers, marker_groups, student_names
 from .download import (
     LAYOUTS,
+    UNASSIGNED,
     DownloadError,
     download_assignment,
     find_assignment,
@@ -174,15 +175,17 @@ def status(assignment, sections, everyone, by_marker, skip_sections, listing, la
         click.echo("no students")
         return
     people = course_students(course) if listing else {}
-    width = max(len(str(n)) for n in result if n is not None) if groups else 0
-    for name in sorted(result, key=lambda n: (n == "unassigned", str(n))):
-        counts = result[name]
-        line = format_tally(counts)
-        click.echo("{}  {}".format(str(name).ljust(width), line) if name is not None else line)
+    names = sorted(n for n in result if n != UNASSIGNED)
+    width = max(len(str(n)) for n in names) if groups and names else 0
+    for name in names:
+        line = format_tally(result[name])
+        click.echo("{}  {}".format(str(name).ljust(width), line) if groups else line)
         if listing:
             for state in ("unmarked", "regrade"):
-                for sub in counts[state]:
+                for sub in result[name][state]:
                     click.echo("    {}: {}".format(state, label(sub, people, layout)))
+    if groups:
+        click.echo(format_total(result))
 
 
 @main.command()

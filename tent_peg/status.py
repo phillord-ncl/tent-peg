@@ -52,9 +52,31 @@ def label(sub, people, layout):
         return str(sub.user_id)
 
 
+def assigned(counts):
+    """The submissions there are to mark: everything but those not submitted."""
+    return sum(len(counts[k]) for k in STATES if k != "missing")
+
+
 def format_tally(counts):
-    """One line: 'marked 3/10, 5 unmarked, 1 regrade, 1 missing'."""
-    total = sum(len(v) for v in counts.values())
-    parts = ["marked {}/{}".format(len(counts["marked"]), total)]
-    parts += ["{} {}".format(len(counts[s]), s) for s in STATES[1:] if counts[s]]
-    return ", ".join(parts)
+    """'marked 3/10', 10 being the submissions to mark, plus ', 2 regrade' when
+    marked work has been resubmitted."""
+    line = "marked {}/{}".format(len(counts["marked"]), assigned(counts))
+    if counts["regrade"]:
+        line += ", {} regrade".format(len(counts["regrade"]))
+    return line
+
+
+def format_total(result):
+    """'Total: marked 32/346, Unassigned 10, Unsubmitted 3/360' over a by-marker ``tally``, a student
+    in two markers' groups counting once. Unassigned is those in no marker's group;
+    Unsubmitted is out of every student, submitted or not."""
+    seen = {}
+    for counts in result.values():
+        for state in STATES:
+            for sub in counts[state]:
+                seen[sub.user_id] = state
+    todo = [st for st in seen.values() if st != "missing"]
+    line = "Total: marked {}/{}".format(todo.count("marked"), len(todo))
+    if UNASSIGNED in result:
+        line += ", Unassigned {}".format(assigned(result[UNASSIGNED]))
+    return line + ", Unsubmitted {}/{}".format(len(seen) - len(todo), len(seen))

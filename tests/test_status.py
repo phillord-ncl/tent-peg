@@ -3,7 +3,7 @@ from types import SimpleNamespace as NS
 from click.testing import CliRunner
 
 from tent_peg import cli
-from tent_peg.status import classify, format_tally, tally
+from tent_peg.status import classify, format_tally, format_total, tally
 from tests.test_cli import setup
 
 
@@ -27,7 +27,7 @@ SUBS = [s(1, "graded"), s(2, "submitted"), s(3, "unsubmitted"), s(4, "submitted"
 def test_tally_limited_to_wanted():
     counts = tally(SUBS, wanted={1, 2})[None]
     assert [len(counts[k]) for k in ("marked", "unmarked", "missing")] == [1, 1, 0]
-    assert format_tally(counts) == "marked 1/2, 1 unmarked"
+    assert format_tally(counts) == "marked 1/2"
 
 
 def test_tally_by_group_with_unassigned():
@@ -41,7 +41,7 @@ def test_status_command_for_my_section(monkeypatch):
     setup(monkeypatch)
     r = CliRunner().invoke(cli.main, ["status", "9", "--list"])
     assert r.exit_code == 0, r.output
-    assert "marked 0/2, 1 unmarked, 1 missing" in r.output
+    assert "marked 0/1" in r.output
     assert "unmarked: " in r.output
 
 
@@ -50,4 +50,16 @@ def test_status_by_marker(monkeypatch):
     monkeypatch.setattr(cli, "marker_groups", lambda course, skip=(): {"mk": {10}})
     r = CliRunner().invoke(cli.main, ["status", "9", "--by-marker"])
     assert r.exit_code == 0, r.output
-    assert "mk" in r.output and "unassigned" in r.output
+    assert "mk  marked 0/1" in r.output
+    assert "Total: marked 0/2, Unassigned 1, Unsubmitted 1/3" in r.output
+
+
+def test_format_tally_counts_only_submissions_and_flags_regrades():
+    subs = [s(1, "graded"), s(2, "graded", grade_matches_current_submission=False),
+            s(3, "submitted"), s(4, "unsubmitted")]
+    assert format_tally(tally(subs)[None]) == "marked 1/3, 1 regrade"
+
+
+def test_format_total_counts_a_shared_student_once():
+    result = tally(SUBS, groups={"a": {1, 2}, "b": {2}})
+    assert format_total(result) == "Total: marked 1/3, Unassigned 1, Unsubmitted 1/4"
