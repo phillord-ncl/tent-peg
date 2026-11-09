@@ -1,5 +1,11 @@
 """Who the markers of a course are, and which students Canvas gives them."""
 
+import click
+
+
+def warn(msg):
+    click.echo("warning: " + msg, err=True)
+
 
 def course_markers(course):
     """One dict per staff member (TA or teacher): name, email-ish login,
@@ -42,11 +48,14 @@ def student_names(course):
             course.get_users(enrollment_type=["student"])}
 
 
-def marker_groups(course, skip=()):
+def marker_groups(course, skip=(), report=warn):
     """Map each marker's full name, forename first, to the set of student user ids
-    in the sections they are enrolled in, restricted or not. ``skip`` names
-    sections (by id or exact name, ignoring case) to leave out, such as the
-    one holding the whole class; a marker with no other section is dropped."""
+    in the sections that are theirs alone: a section counts only when exactly
+    one marker is enrolled in it, so a class-wide section shared by many markers
+    says nothing and is ignored. ``skip`` names further sections (by id or exact
+    name, ignoring case) to leave out. A marker with no section of their own is
+    dropped. ``report`` (default: a warning on stderr) is told of each shared section holding under half the
+    students, which is probably a mistake."""
     skip = {str(x).strip().lower() for x in skip}
     sections = {s.id: s for s in course.get_sections(include=["students"])}
     unknown = skip - {str(i) for i in sections} - {s.name.lower() for s in sections.values()}
@@ -57,9 +66,19 @@ def marker_groups(course, skip=()):
         for i, s in sections.items()
         if str(i) not in skip and s.name.lower() not in skip
     }
+    class_wide = set().union(*members.values()) if members else set()
+    markers = course_markers(course)
+    owners = {}
+    for m in markers:
+        for i in m["sections"]:
+            if i in members:
+                owners.setdefault(i, []).append(m["full_name"])
+    for i, names in sorted(owners.items()):
+        if len(names) > 1 and 2 * len(members[i]) < len(class_wide):
+            report("section {} is shared by {}: ignored".format(
+                sections[i].name, ", ".join(sorted(names))))
     groups = {}
-    for m in course_markers(course):
-        mine = [members[i] for i in m["sections"] if i in members]
-        if mine:
-            groups.setdefault(m["full_name"], set()).update(*mine)
+    for i, names in owners.items():
+        if len(names) == 1:
+            groups.setdefault(names[0], set()).update(members[i])
     return groups
