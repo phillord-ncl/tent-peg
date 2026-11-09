@@ -7,13 +7,16 @@ from tent_pole.course import course_by_exact
 from tent_pole.rubric import load_rubric_toml
 
 from .push import PushError, live_criteria, push_grade, push_submission, read_results
+from .status import format_tally, label, tally
 from .markers import course_markers, marker_groups, student_names
 from .download import (
     LAYOUTS,
     DownloadError,
     download_assignment,
     find_assignment,
+    course_students,
     my_section_ids,
+    section_members,
 )
 
 
@@ -38,6 +41,24 @@ def need_assignment(given):
         raise click.UsageError(
             "no assignment: name it, or set [peg] assignment in tent-pole.toml")
     return found
+
+
+def select_sections(course, canvas, sections, everyone, by_marker, skip_sections):
+    """The section ids to limit to (None: everyone), from the options shared by
+    ``download`` and ``status``."""
+    if (everyone or by_marker) and sections:
+        raise click.UsageError("--all and --section do not go together")
+    if skip_sections and not by_marker:
+        raise click.UsageError("--skip-section needs --by-marker")
+    if by_marker or everyone:
+        return None
+    if sections:
+        return set(sections)
+    mine = my_section_ids(course, canvas.get_current_user().id)
+    if not mine:
+        raise click.ClickException(
+            "you are not enrolled in any section; name one with --section, or use --all")
+    return mine
 
 
 @click.group()
@@ -98,21 +119,8 @@ def download(assignment, out, sections, everyone, by_marker, skip_sections, layo
     out = peg_setting("marking", out) or "."
     canvas = tp_config.config_canvas()
     course = find_course(canvas)
-    if (everyone or by_marker) and sections:
-        raise click.UsageError("--all and --section do not go together")
-    if skip_sections and not by_marker:
-        raise click.UsageError("--skip-section needs --by-marker")
-    if by_marker:
-        section_ids = None
-    elif sections:
-        section_ids = set(sections)
-    elif everyone:
-        section_ids = None
-    else:
-        section_ids = my_section_ids(course, canvas.get_current_user().id)
-        if not section_ids:
-            raise click.ClickException(
-                "you are not enrolled in any section; name one with --section, or use --all")
+    section_ids = select_sections(
+        course, canvas, sections, everyone, by_marker, skip_sections)
     try:
         assignment = find_assignment(course, assignment)
         groups = marker_groups(course, skip_sections) if by_marker else None
@@ -123,6 +131,58 @@ def download(assignment, out, sections, everyone, by_marker, skip_sections, layo
     except (DownloadError, ValueError) as e:
         raise click.ClickException(str(e))
     click.echo("{} submissions written to {}".format(len(made), out))
+
+
+@main.command()
+@click.argument("assignment", required=False)
+@click.option("--section", "sections", type=int, multiple=True,
+              help="Students in this section id instead of your own (repeatable).")
+@click.option("--all", "everyone", is_flag=True,
+              help="Every student, for when you are in no section.")
+@click.option("--by-marker", is_flag=True,
+              help="Every student, a line per marker (their Canvas sections); "
+                   "students in no marker's section are under unassigned.")
+@click.option("--skip-section", "skip_sections", multiple=True,
+              help="With --by-marker, ignore this section (id or name; repeatable).")
+@click.option("--list", "listing", is_flag=True,
+              help="Name the students still to mark (or to re-mark).")
+@click.option("--layout", type=click.Choice(sorted(LAYOUTS)), default=None,
+              help="Name students by email or by NCL login id (default: email, login for anonymous assignments).")
+def status(assignment, sections, everyone, by_marker, skip_sections, listing, layout):
+    """Show how far marking of ASSIGNMENT (id or name) has got, from what
+    Canvas holds: marked, marked but since resubmitted (regrade), submitted
+    and unmarked, and not submitted. Covers your sections, or --section,
+    --all, or --by-marker for a line per marker."""
+    assignment = need_assignment(assignment)
+    canvas = tp_config.config_canvas()
+    course = find_course(canvas)
+    section_ids = select_sections(
+        course, canvas, sections, everyone, by_marker, skip_sections)
+    try:
+        assignment = find_assignment(course, assignment)
+        groups = marker_groups(course, skip_sections) if by_marker else None
+        wanted = None
+        if section_ids is not None:
+            members, _ = section_members(course, section_ids)
+            wanted = set().union(*members.values()) if members else set()
+    except (DownloadError, ValueError) as e:
+        raise click.ClickException(str(e))
+    anonymous = bool(getattr(assignment, "anonymous_grading", False))
+    layout = layout or ("login" if anonymous else "email")
+    result = tally(assignment.get_submissions(), wanted, groups)
+    if not result:
+        click.echo("no students")
+        return
+    people = course_students(course) if listing else {}
+    width = max(len(str(n)) for n in result if n is not None) if groups else 0
+    for name in sorted(result, key=lambda n: (n == "unassigned", str(n))):
+        counts = result[name]
+        line = format_tally(counts)
+        click.echo("{}  {}".format(str(name).ljust(width), line) if name is not None else line)
+        if listing:
+            for state in ("unmarked", "regrade"):
+                for sub in counts[state]:
+                    click.echo("    {}: {}".format(state, label(sub, people, layout)))
 
 
 @main.command()

@@ -126,6 +126,15 @@ tent-peg gets the work; arbiter marks it:
     arbiter --arb CSC1034.arb.toml -r marking
     tent-peg -c "CSC1034 (26/27)" marks push "Assignment/Assessment 1" marking
 
+To see how far marking has got, as Canvas knows it:
+
+    tent-peg -c "CSC1034 (26/27)" status "Assignment/Assessment 1" --by-marker --skip-section All --list
+
+This counts submissions marked, marked but resubmitted since (`regrade`),
+submitted and unmarked, and not submitted. It takes the same `--section`,
+`--all`, `--by-marker` and `--skip-section` options as `download`; `--list`
+names the students still to mark.
+
 ## Development
 
     poetry install
