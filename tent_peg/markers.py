@@ -66,7 +66,7 @@ def marker_groups(course, skip=(), report=warn):
         for i, s in sections.items()
         if str(i) not in skip and s.name.lower() not in skip
     }
-    class_wide = set().union(*members.values()) if members else set()
+    class_wide = {st["id"] for sec in sections.values() for st in (sec.students or [])}
     markers = course_markers(course)
     owners = {}
     for m in markers:
