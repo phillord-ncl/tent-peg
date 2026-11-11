@@ -178,7 +178,7 @@ def status(assignment, sections, everyone, by_marker, skip_sections, listing, la
     names = sorted(n for n in result if n != UNASSIGNED)
     width = max(len(str(n)) for n in names) if groups and names else 0
     for name in names:
-        line = format_tally(result[name])
+        line = format_tally(result[name], missing=bool(groups))
         click.echo("{}  {}".format(str(name).ljust(width), line) if groups else line)
         if listing:
             for state in ("unmarked", "regrade"):

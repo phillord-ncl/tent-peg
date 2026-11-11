@@ -63,3 +63,10 @@ def test_format_tally_counts_only_submissions_and_flags_regrades():
 def test_format_total_counts_a_shared_student_once():
     result = tally(SUBS, groups={"a": {1, 2}, "b": {2}})
     assert format_total(result) == "Total: marked 1/3, Unassigned 1, Unsubmitted 1/4"
+
+
+def test_format_tally_can_show_students_not_submitted():
+    subs = [s(1, "graded"), s(2, "unsubmitted"), s(3, "unsubmitted")]
+    counts = tally(subs)[None]
+    assert format_tally(counts) == "marked 1/1"
+    assert format_tally(counts, missing=True) == "marked 1/1, 2 not submitted"

@@ -57,12 +57,15 @@ def assigned(counts):
     return sum(len(counts[k]) for k in STATES if k != "missing")
 
 
-def format_tally(counts):
+def format_tally(counts, missing=False):
     """'marked 3/10', 10 being the submissions to mark, plus ', 2 regrade' when
-    marked work has been resubmitted."""
+    marked work has been resubmitted, and with ``missing`` ', 4 not submitted'
+    for those students who have not submitted."""
     line = "marked {}/{}".format(len(counts["marked"]), assigned(counts))
     if counts["regrade"]:
         line += ", {} regrade".format(len(counts["regrade"]))
+    if missing and counts["missing"]:
+        line += ", {} not submitted".format(len(counts["missing"]))
     return line
 
 
