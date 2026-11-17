@@ -1,10 +1,16 @@
 # tent-peg
 
 Interact with the Canvas assignments of a course: download the submissions
-you are marking, and see who the markers are. It is part of the tent family
-with [tent-pole](https://github.com/phillord-ncl/tent-pole), which pushes
-course content to Canvas, and [arbiter](https://github.com/phillord-ncl/arbiter),
-which does the marking.
+you are marking, and see who the markers are.
+
+tent-peg is part of the tent-tools suite. See also:
+
+- [tent-pole](https://github.com/phillord-ncl/tent-pole) -- manage Canvas
+  course content as markdown and push it to Canvas
+- [arbiter](https://github.com/phillord-ncl/arbiter) -- mark programming
+  assignments
+- [tent-pack](https://github.com/phillord-ncl/tent-pack) -- check student
+  coursework and pack it into a zip for upload
 
 Canvas can hand a grader every submission, but not just the ones assigned to
 them. tent-peg reads them through the API and keeps only the students in your
