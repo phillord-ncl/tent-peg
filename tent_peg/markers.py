@@ -82,3 +82,19 @@ def marker_groups(course, skip=(), report=warn):
         if len(names) == 1:
             groups.setdefault(names[0], set()).update(members[i])
     return groups
+
+
+def find_marker_students(groups, ident):
+    """The user ids of the marker in ``groups`` (from ``marker_groups``) named
+    ``ident``: an exact name ignoring case, else the one name containing it."""
+    want = ident.strip().lower()
+    names = {n.lower(): n for n in groups}
+    if want in names:
+        return groups[names[want]]
+    found = [n for n in groups if want in n.lower()]
+    if len(found) == 1:
+        return groups[found[0]]
+    if found:
+        raise ValueError("{!r} matches several markers: {}".format(ident, ", ".join(sorted(found))))
+    raise ValueError("no marker {!r} with sections of their own; have: {}".format(
+        ident, ", ".join(sorted(groups))))

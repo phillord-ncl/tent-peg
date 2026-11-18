@@ -121,3 +121,18 @@ def test_by_marker_groups_students_under_their_marker(monkeypatch, tmp_path):
     assert r.exit_code == 0, r.output
     assert (tmp_path / "mk" / "ann@ncl.ac.uk" / "canvas.toml").exists()
     assert (tmp_path / "unassigned" / "bob@ncl.ac.uk" / "canvas.toml").exists()
+
+
+def test_only_marker_downloads_just_their_students(monkeypatch, tmp_path):
+    setup(monkeypatch)
+    monkeypatch.setattr(cli, "marker_groups", lambda course, skip=(): {"Mary Kay": {10}, "Other": {11}})
+    r = CliRunner().invoke(cli.main, ["download", "9", "--only-marker", "kay", "--out", str(tmp_path)])
+    assert r.exit_code == 0, r.output
+    assert [p.name for p in tmp_path.iterdir()] == ["ann@ncl.ac.uk"]
+
+
+def test_only_marker_unknown_marker_is_an_error(monkeypatch, tmp_path):
+    setup(monkeypatch)
+    monkeypatch.setattr(cli, "marker_groups", lambda course, skip=(): {"Mary Kay": {10}})
+    r = CliRunner().invoke(cli.main, ["download", "9", "--only-marker", "zed", "--out", str(tmp_path)])
+    assert r.exit_code != 0 and "no marker" in r.output

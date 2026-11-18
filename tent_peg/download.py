@@ -141,6 +141,7 @@ def download_assignment(
     force=False,
     report=lambda msg: None,
     groups=None,
+    students=None,
 ):
     """Write each submission to ``assignment`` into a directory under ``out``.
 
@@ -149,6 +150,8 @@ def download_assignment(
     A student whose directory already holds a canvas.toml is left alone unless
     ``force``, so an interrupted run can be repeated, and a marker's results
     are not overwritten. Returns the directories written.
+
+    ``students`` (a set of user ids) limits it to those students.
 
     ``groups`` maps a name to a set of user ids. Each student then goes into
     ``out/<name>/`` for every group holding them (a copy in each), or into
@@ -164,6 +167,8 @@ def download_assignment(
     if section_ids is not None:
         members, section_names = section_members(course, section_ids)
         wanted = set().union(*members.values()) if members else set()
+    if students is not None:
+        wanted = set(students) if wanted is None else wanted & set(students)
     student_sections = {}
     for section in course.get_sections(include=["students"]):
         for s in section.students or []:

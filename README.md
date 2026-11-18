@@ -71,7 +71,11 @@ assignment). Options:
   A student in two markers' sections is copied into both; students no marker
   has go in `DIR/unassigned/`. Zip each marker's directory to hand it out.
   Cannot be combined with `--section`.
-- `--skip-section NAME` (repeatable, with `--by-marker`): ignore a section, by
+- `--only-marker NAME`: just that one marker's students (the same ones
+  `--by-marker` would give them), written straight into `DIR/<student>/`.
+  NAME is their full name or any unique part of it, ignoring case.
+  Cannot be combined with `--all`, `--by-marker` or `--section`.
+- `--skip-section NAME` (repeatable, with `--by-marker` or `--only-marker`): ignore a section, by
   id or exact name. Use it for the section holding the whole class, or
   everyone enrolled only in it gets every student.
 - `--layout email|login`: how to name the student directories.
