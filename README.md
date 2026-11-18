@@ -1,4 +1,4 @@
-# tent-peg
+# Tent-Peg: Download Canvas Submissions and Push Marks
 
 Interact with the Canvas assignments of a course: download the submissions
 you are marking, and see who the markers are.
