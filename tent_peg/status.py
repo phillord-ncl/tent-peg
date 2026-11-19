@@ -12,9 +12,15 @@ def classify(submission):
     marked: graded (or excused) and the grade is for the current submission.
     regrade: graded, but the student has submitted again since.
     unmarked: submitted and waiting for a mark.
-    missing: nothing submitted and no mark."""
+    missing: nothing submitted and no mark.
+
+    Graded follows Canvas's own ``Submission#graded?``: excused, or a
+    ``graded`` workflow state with a score. The state alone is not enough,
+    as Canvas leaves it ``graded`` when a grade is entered and then
+    cleared."""
     state = getattr(submission, "workflow_state", "")
-    if getattr(submission, "excused", False) or state == "graded":
+    scored = getattr(submission, "score", None) is not None
+    if getattr(submission, "excused", False) or (state == "graded" and scored):
         if getattr(submission, "grade_matches_current_submission", True) is False:
             return "regrade"
         return "marked"

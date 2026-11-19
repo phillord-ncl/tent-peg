@@ -8,17 +8,29 @@ from tests.test_cli import setup
 
 
 def s(uid, state, **kw):
+    if state == "graded":
+        kw.setdefault("score", 5.0)
     return NS(user_id=uid, workflow_state=state, **kw)
 
 
 def test_classify():
     assert classify(s(1, "graded")) == "marked"
+    assert classify(s(1, "graded", score=0.0)) == "marked"
     assert classify(s(1, "graded", grade_matches_current_submission=True)) == "marked"
     assert classify(s(1, "graded", grade_matches_current_submission=False)) == "regrade"
     assert classify(s(1, "unsubmitted", excused=True)) == "marked"
     assert classify(s(1, "submitted")) == "unmarked"
     assert classify(s(1, "pending_review")) == "unmarked"
     assert classify(s(1, "unsubmitted")) == "missing"
+
+
+def test_classify_graded_without_score_is_unmarked():
+    # What Canvas holds after a grade is entered and then cleared: the
+    # state stays graded but the UI shows the submission as not graded.
+    assert classify(s(1, "graded", score=None)) == "unmarked"
+    assert classify(s(1, "graded", score=None,
+                      grade_matches_current_submission=False)) == "unmarked"
+    assert classify(s(1, "graded", score=None, excused=True)) == "marked"
 
 
 SUBS = [s(1, "graded"), s(2, "submitted"), s(3, "unsubmitted"), s(4, "submitted")]
